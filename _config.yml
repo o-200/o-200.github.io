@@ -1,10 +1,10 @@
 # Site Specific Configuration
 name: LightSpeed
 description: A simple Jekyll theme
-url: https://example.com
-author: tajacks
-timezone: America/Toronto
-timezone_short: ET
+url: https://o-200.github.io
+author: o-200
+timezone: Russia/Moscow
+timezone_short: MSK
 
 # Keywords
 keywords: ['seo', 'key', 'words']
