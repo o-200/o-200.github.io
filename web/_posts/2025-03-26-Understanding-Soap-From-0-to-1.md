@@ -4,13 +4,19 @@ author: Alex Abramov
 title: Understanding SOAP from 0 to 1 (using ruby)
 ---
 
+# Introduction
+
+
+
 # What is SOAP?
 
 SOAP its a protocol which uses XML for messages using HTTP (or any other protocols for transferring messages with each other with their specifics, were going talking about HTTP/HTTPS).
 
-# What is wsdl?
+# What is WSDL?
 
 WSDL is XML-based language used for describing the schema offered by a web service. It allowing clients to understand how to interact with services using SOAP, it defines the structure, operations, input/output messages, and communication protocols that a web service.
+
+It's like a xml schema using to represents how to build your message to the server. Every time it seems like a swamp with an endless and scarieng contents. But if you would read it once - you will read wsdl of any difficulty. 
 
 ## How to find wsdl schema?
 
@@ -18,9 +24,13 @@ You need to have access to the api. For example - [http://www.dneonline.com/calc
 
 This is a SOAP api for testing or practising interaction using SOAP. They have a wsdl schema, to come in just update your link and add ?wsdl at the end ([http://www.dneonline.com/calculator.asmx?wsdl](http://www.dneonline.com/calculator.asmx?wsdl)) and you will get it!
 
-# Why it is Safe?
+# Secureness of SOAP
+
+## Why it is Safe?
 
 SOAP safe in first thanks to strictly standarts which requires to build xml only for rules described in schemes. You always known which data's you will receive in successfull and failed scenarios. You can also see that info in wsdl schema. Im sorry, but i dont want to explain wsdl schemes, its a content for another post :(
+
+Consider a SOAP web service that interacts with a vault to retrieve API keys or authentication tokens securely.
 
 ## Example of http query which uses SOAP:
 
@@ -124,15 +134,61 @@ Fault is an optional element that provides information about errors that occurre
 </soapenv:Body>
 ```
 
+# Ws-Security
+
+WS-Security is a part that provides security mechanisms for web services. It ensures that the message has not been altered during transmission.
+
+```xml
+<soapenv:Header>
+  <wsse:Security xmlns:wsse="http://schemas.xmlsoap.org/ws/2002/07/secext">
+    <wsse:UsernameToken>
+      <wsse:Username>testUser</wsse:Username>
+      <wsse:Password>testPassword</wsse:Password>
+    </wsse:UsernameToken>
+  </wsse:Security>
+</soapenv:Header>
+```
+
 # How to debug and working with soap?
 
 There is a lot of instruments to workings with SOAP, but i will recommend the **SoapUI**. There is ultimate tool which can help you automatically generate xml document and sends request inside it. It's just Postman from the xml world!
 
 A lot of companies sending their soap apis with exported soapUI schemes. In one click you can import and receive all methods with all parameters, examples of requests/responses
 
-# Ruby on SOAP
+# SOAP on Ruby
 
-Many production projects preferring builds XML by himself, building a huge OOP monoliths which returns a string with XML document. This is a good way, but you might to think about supporting this huge piece of code.
+Many production projects preferring builds XML by himself, building a huge OOP monoliths which returns a string with XML document. This is a good way, but you might to think about supporting this huge piece of code. 
+
+There is easiest way to sends requests.
+
+```ruby
+require 'net/http'
+require 'uri'
+
+soap_message = <<~XML
+  <?xml version="1.0" encoding="UTF-8"?>
+  <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://example.com/">
+    <soapenv:Header/>
+    <soapenv:Body>
+      <web:GetData>
+        <web:Parameter>SampleValue</web:Parameter>
+      </web:GetData>
+    </soapenv:Body>
+  </soapenv:Envelope>
+XML
+
+url = URI.parse("http://example.com/soap-endpoint")
+http = Net::HTTP.new(url.host, url.port)
+request = Net::HTTP::Post.new(url.path, { 'Content-Type' => 'text/xml; charset=utf-8' })
+request.body = soap_message
+
+response = http.request(request)
+puts response.body
+```
+
+But in production you will encounter difficult xml's which length is easy to achieving 100+ rows.
+
+# Useful gems
 
 Ruby have a few gems which will be good to solve problems:
 
