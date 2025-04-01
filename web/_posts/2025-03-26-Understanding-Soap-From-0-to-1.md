@@ -1,38 +1,32 @@
 ---
 layout: post
 author: Alex Abramov
-title: Understanding SOAP from 0 to 1 (using ruby)
+title: Understanding SOAP from 0 to 1
 ---
 
-# Introduction
+# Что такое SOAP?
 
+SOAP это протокол, использующий XML для передачи сообщений, используя HTTP (Также возможно использование других протокол для обмена сообщений, но мы будем говорить конкретно про HTTP/HTTPS).
 
+# Что такое WSDL?
 
-# What is SOAP?
+WSDL это схема XML, по которой описывается по каким правилам необходимо создать XML сообщение для взаимодесйтвия с сервисом SOAP. WSDL предоставляет тип протоколов для взаимодействия, структуру сообщения, все возможные операции взаимодействия, различные возможные ответы на сообщения. 
 
-SOAP its a protocol which uses XML for messages using HTTP (or any other protocols for transferring messages with each other with their specifics, were going talking about HTTP/HTTPS).
+Схема показывает нам как простроить сообщение чтобы впоследствии получить успешный ответ от сервера. Чаще всего wsdl схема будет похожа на болото с бесконечно-непонятным и пугающим описанием. Но если ты сможешь прочитать его однажды - у тебя не будет проблем прочитать любую схему любой сложности.
 
-# What is WSDL?
+## Где находится WSDL схема?
 
-WSDL is XML-based language used for describing the schema offered by a web service. It allowing clients to understand how to interact with services using SOAP, it defines the structure, operations, input/output messages, and communication protocols that a web service.
+Необходимо иметь доступ к API. Например, api калькулятора - [http://www.dneonline.com/calculator.asmx](http://www.dneonline.com/calculator.asmx).
 
-It's like a xml schema using to represents how to build your message to the server. Every time it seems like a swamp with an endless and scarieng contents. But if you would read it once - you will read wsdl of any difficulty. 
+Данное API хорошо побходит для практики и отправки первого запроса через SOAP. У неё есть wsdl схема, для того чтобы найти её нужно добавить `?wsdl/ в конце ссылки ([http://www.dneonline.com/calculator.asmx?wsdl](http://www.dneonline.com/calculator.asmx?wsdl)).
 
-## How to find wsdl schema?
+# Защищённость SOAP
 
-You need to have access to the api. For example - [http://www.dneonline.com/calculator.asmx](http://www.dneonline.com/calculator.asmx).
+## Почему оно безопасно?
 
-This is a SOAP api for testing or practising interaction using SOAP. They have a wsdl schema, to come in just update your link and add ?wsdl at the end ([http://www.dneonline.com/calculator.asmx?wsdl](http://www.dneonline.com/calculator.asmx?wsdl)) and you will get it!
+SOAP безопасен благодаря строгим стандартам, которые требуют создавать xml документ исключительно по описываемым провилам в схеме. Ты всегда знаешь получаемые данные, различные ответы в успешных и проваленных сценарий. Большинство схем требуют чтобы вы свой запрос подписывали по определённым стандартам безопасности, производили шифрование запроса. Благодаря этому решаются проблемы целостности данных, повторное воспроизведение запросов, подмена сообщений и другие.
 
-# Secureness of SOAP
-
-## Why it is Safe?
-
-SOAP safe in first thanks to strictly standarts which requires to build xml only for rules described in schemes. You always known which data's you will receive in successfull and failed scenarios. You can also see that info in wsdl schema. Im sorry, but i dont want to explain wsdl schemes, its a content for another post :(
-
-Consider a SOAP web service that interacts with a vault to retrieve API keys or authentication tokens securely.
-
-## Example of http query which uses SOAP:
+## Пример http запроса, использующий SOAP:
 
 ```xml
 POST /WebService.asmx HTTP/1.1
@@ -54,21 +48,20 @@ Content-Length: length
 </soap:Envelope>
 ```
 
-Our xml-soap-message placed in http-message body and we are also receiving similar http queries.
+Наше xml-soap-сообщение помещается в тело http-сообщения, и мы также получаем аналогичные http-запросы.
 
-## Components of SOAP (what does it consists of)
+## Из чего состоит SOAP-сообщение
 
 ### xml
 
-SOAP message starts in describing which standard use to be. Some api's will requires specific version of xml, so you need be to sure about it.
-
+SOAP сообщение начинается с объявления стандарта. Различные API требует различные версии xml, по этому нам необходимо уточнять серверу по какой версии xml у нас простроено сообщение.  
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 ```
 
 ### Envelope
 
-Next, it must be an SOAP message which start with Envelope. There is a beginning element of every SOAP message. They define structures and namespaces used in the message. `xmlns:xsi` `xmlns:xsd` and `xmlns:soap` is a namespaces which used to standartize our message. Using documents from these links receiver of message can understand by which rules our message is builded.
+Дальше, сообщение должно начинаться с Envelope. Каждое сообщениие должно начинаться именно с этого элемента. Оно представляет структуру и переменные-неймспейсы (namespace).  `xmlns:xsi` `xmlns:xsd` и `xmlns:soap` являются неймспейсами которые стандартизируют наше сообщение. Благодаря этому получатель сообщения сможет понять по каким правилам построено наше сообщение.
 
 ```xml
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" # xmls
@@ -79,7 +72,7 @@ Next, it must be an SOAP message which start with Envelope. There is a beginning
 
 ### Header
 
-Header is an Optional element which contains metadata related to the message, such as authentication, session management, or routing information. In most messages it just may be empty. They have to contains namespaces, parameters and structures, similar to `body`.
+Header является не обязательным элементов, хранящий в себе метаданные для сообщения, например аутентификацию, информацию об адресе. Часто бывает что Header пустой. Он также может хранить неймспейсы, параметры и другие структуры, также как и на `body`
 
 ```xml
 # there is empty Header without any data
@@ -98,10 +91,10 @@ Header is an Optional element which contains metadata related to the message, su
 
 ### Body
 
-Our soap-body contains the request to the specific resourse/method and response parameters.
+Наше тело SOAP хранит запрос к конкретному ресурсу или методу, а также параметры для ресурсов или методов. Это могут быть различные фильтры, параметры для создание ресурсов и другие вещи для взаимодействия. В случае с калькулятором мы обращаемся к методу (по типу "прибавить", "отнять", "умножить" или "разделить") и оставляем 2 параметра для того, чтобы произвести нам метод на них.  
 
-- `GetInfo` - is a method or resource which we interacts in schema
-- `param1` and `param 2` - is a our parameters which we sends to a server
+- `GetInfo` - Это метод к которому мы хотим постучаться.
+- `param1` и `param 2` - Это параметры для взаимодействия, хранятся внутри метода.
 
 ```xml
 <soap:Body>
@@ -112,13 +105,13 @@ Our soap-body contains the request to the specific resourse/method and response 
 </soap:Body>
 ```
 
-## Answer of SOAP message
+## Ответ SOAP сообщения
 
-Soap also returns xml document which also have `Envelope`, `Body`, but there you can reach the new element - `Fault`
+SOAP также возвращает xml документ с похожей структурой, состоящий из `Envelope`, `Body`. Иногда вы можете встретить другой элемент - `Fault`
 
-### Fautl
+### Fault
 
-Fault is an optional element that provides information about errors that occurred while processing messages.
+Fault это необязательный элемент, который показывает информацию об ошибках, которые были допущены во время обработки сообщения. Данное сообщение можно встретить когда отправленное сообщение было построено неправильно, имеет ошибки.
 
 ```xml
 <soapenv:Body>
@@ -136,7 +129,7 @@ Fault is an optional element that provides information about errors that occurre
 
 # Ws-Security
 
-WS-Security is a part that provides security mechanisms for web services. It ensures that the message has not been altered during transmission.
+WS-Security - это часть, которая обеспечивает механизмы безопасности для веб-сервисов. Она гарантирует, что сообщение не было изменено во время передачи.
 
 ```xml
 <soapenv:Header>
@@ -149,17 +142,17 @@ WS-Security is a part that provides security mechanisms for web services. It ens
 </soapenv:Header>
 ```
 
-# How to debug and working with soap?
+# Как работать с SOAP и производить его отладку (debug)?
 
-There is a lot of instruments to workings with SOAP, but i will recommend the **SoapUI**. There is ultimate tool which can help you automatically generate xml document and sends request inside it. It's just Postman from the xml world!
+Существует множество инструментов для работы с SOAP, но я рекомендую **SoapUI**. Это ультимативно удобный инструмент, который помогает автоматически генерировать xml-документ и отправить запрос внутри него. Это просто Postman из мира xml. 10/10
 
-A lot of companies sending their soap apis with exported soapUI schemes. In one click you can import and receive all methods with all parameters, examples of requests/responses
+Многие конкретно полагаются на SoapUI, компании отправляют свои soap api's с экспортированными схемами soapUI. В один клик вы можете импортировать и получить все методы со всеми параметрами, примеры запросов/ответов.
 
 # SOAP on Ruby
 
-Many production projects preferring builds XML by himself, building a huge OOP monoliths which returns a string with XML document. This is a good way, but you might to think about supporting this huge piece of code. 
+Многие предпочитают строить XML самостоятельно, это один из самых простых способов отправки запросов. возводя огромный монолит ООП, который возвращает строку с XML-документом. Это хороший способ, но вам стоит подумать о поддержке этого огромного куска кода. 
 
-There is easiest way to sends requests.
+В данном примере нету огромного ООП класса, а наше soap сообщение просто является строкой.
 
 ```ruby
 require 'net/http'
@@ -186,15 +179,14 @@ response = http.request(request)
 puts response.body
 ```
 
-But in production you will encounter difficult xml's which length is easy to achieving 100+ rows.
+Но способ выше не всегда подходит, множество SOAP сообщений требуют
 
-# Useful gems
+# Полезные ruby gems
 
-Ruby have a few gems which will be good to solve problems:
+В Ruby есть несколько гемов, которые пригодятся для решения проблем:
 
-## [Savon](https://github.com/savonrb/savon) - Heavy metal SOAP client which generates xml and sends requests on ruby
-
-Rubies have a any of instruments for working with soap. The most popular is [savon](https://github.com/savonrb/savon)
+## [Savon](https://github.com/savonrb/savon) - Тяжелый металлический SOAP-клиент, который генерирует xml и отправляет запросы на ruby
+У рубина существует множество инструментов для работы с SOAP. Самый популярный из них [savon](https://github.com/savonrb/savon)
 
 ```ruby
 require 'savon'
@@ -206,8 +198,7 @@ client = Savon.client(wsdl: 'http://www.dneonline.com/calculator.asmx?WSDL')
 response = client.call(:add, message: { 'intA' => 5, 'intB' => 3 })
 response.body
 ```
-
-Gem using wsdl schema to build xml document by setuped rules. Actual generated xml will be:
+Гем, используя схему wsdl, создает xml документ по заданным правилам. Фактически сгенерированный xml будет иметь вид:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -223,16 +214,17 @@ Gem using wsdl schema to build xml document by setuped rules. Actual generated x
 </soapenv:Envelope>
 ```
 
-There is ultimate gem which actual for now and will support any oldest versions of Ruby.
+## [XMLDSig](https://github.com/benoist/xmldsig)  
 
-## [XMLDSig](https://github.com/benoist/xmldsig)
+**XMLDSig (XML Digital Signature)** — это стандарт для подписания XML-документов, обеспечивающий их подлинность, целостность и невозможность отказа от подписи. Цель XMLDSig — позволить подписывать XML-документ или его часть, предоставляя доказательство того, что документ не был изменён после подписания.  
 
-XMLDSig (XML Digital Signature) is a standard for signing XML documents to ensure their authenticity, integrity, and non-repudiation. The purpose of XMLDSig is to allow you to sign an XML document or a portion of it, providing proof that the document has not been altered since it was signed.
+Самостоятельное подписание документа — сложный процесс, поэтому существует гем [XMLDSig](https://github.com/benoist/xmldsig), который значительно упрощает задачу.  
 
-It is a hard-process to self signing your document, so there is gem [XMLDSig](https://github.com/benoist/xmldsig) which will make your life easier.
+Однако есть и плохие новости — гем больше не поддерживается его создателями. Тем не менее, он работает на новых версиях Ruby (в моём проекте успешно используется с Ruby 3.3.0).  
 
-But there is bad news - gem is not currently supportind by their creators, but its works on newest ruby versions (works on my project with ruby 3.3.0)
+## Конец
 
-# Conclusions
+**SOAP** — это протокол, который **строго** требует соблюдения определённых правил. Он безопасен и невероятно совместим между разными платформами благодаря стандартам.  
 
-SOAP is a protocol which **strictly** requires to achieve specific rules. It's safe, it's incredibly compatible between different platforms thanks to a standarts. But it's harder than architectures styles (for example REST), they requires a reverent attitude to a building xml documents to being valid.
+Однако он сложнее, чем другие архитектурные стили (например, REST), поскольку требует тщательного подхода к построению XML-документов, чтобы они соответствовали требованиям валидности.
+
