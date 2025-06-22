@@ -6,19 +6,19 @@ title: Que On Rails Without structure.sql
 
 # Resume
 
-Que (\*not confuse with solid-queue) have some specific way to implement it to rails due of posgreSQL specific structures (especially functions). Que forces to switch schema.rb to structure.sql . At this article i'll describe how to implement Que and stay with schema.rb . Also, at this article i will describe my pain and save your time to solve this interesting task.
+`Que` (\*not confuse with `solid-queue`) have some specific way to implement it to rails due of `PostgreSQL` specific structures (especially functions). Que forces to switch `schema.rb` to `structure.sql` . At this article i'll describe how to implement Que and stay with `schema.rb` . Also, at this article i will describe my pain and save your time to solve this interesting task.
 
 ## Problem?
 
-Que has only condition supports. It forces to switch schema.rb to structure.sql
+Que has only condition supports. It forces to switch `schema.rb` to `structure.sql`
 
 ```ruby
-  config.active_record.schema_format :sql
+config.active_record.schema_format :sql
 ```
 
-Why is schema.rb isn't compatible with Que???
+Why is `schema.rb` isn't compatible with `Que`???
 
-`Rails::Migration` and especially `schema.rb` doesn't supports database specific structures, like views, triggers and functions. Que using functions and use it at table constraints:
+`Rails::Migration` and especially `schema.rb` doesn't supports database specific structures, like views, triggers and functions. `Que` using functions and use it at table constraints:
 
 ```ruby
 create_table "que_jobs", comment: "7", force: :cascade do |t|
@@ -28,7 +28,7 @@ create_table "que_jobs", comment: "7", force: :cascade do |t|
 end
 ```
 
-`que_validate_tags` is a function which defines at one of Que's migrations. They are places at [4th que migration](https://github.com/que-rb/que/blob/master/lib/que/migrations/4/up.sql#L34):
+`que_validate_tags` is a function which defines at one of `Que's` migrations. They are places at [4th que migration](https://github.com/que-rb/que/blob/master/lib/que/migrations/4/up.sql#L34):
 
 but why we just cant create this function inside on migration?
 
@@ -58,13 +58,13 @@ end
 
 When Rails checks the schema (db:schema:dump), it does so in a new transaction. Functions are missing and we [got that problem](https://github.com/que-rb/que/issues/397).
 
-schema.rb is not a full copy of database schema - it is only structure which Rails understand and it is created only for Rails DSL. They got a lot of transactions/processes which can forgot your function from database at any process.
+`schema.rb` is a structure which created only for Rails DSL. Rails migrations have a lot of transactions/processes which can forgot your function from database at any process.
 
-So, for that creators of Que asking for switching schema.rb -> structure.sql. It's using pg_dump instead of rails db:schema:dump and includes all objects.
+So, for that creators of `Que` asking for switching `schema.rb -> structure.sql`. It's using `pg_dump` instead of `rails db:schema:dump` and includes all objects.
 
 ## structure.sql is a endless headache.
 
-While structure.sql works, it comes with drawbacks:
+While `structure.sql` works, it comes with drawbacks:
 
 - Harder to review in version control
 - More prone to merge conflicts
