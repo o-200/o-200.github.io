@@ -44,5 +44,8 @@ exclude: ["README.md", "COPYING"]
 # Plugins
 plugins:
   - jekyll-feed
-  - jekyll-paginate-v2
+  - jekyll-paginate
   - jekyll-seo-tag
+
+paginate: 3
+paginate_path: "/posts/page:num/"
