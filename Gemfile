@@ -1,5 +1,5 @@
 source "https://rubygems.org"
-ruby "3.0.2"
+ruby "3.4.3"
 
 gem "jekyll"
 gem "jekyll-feed"
