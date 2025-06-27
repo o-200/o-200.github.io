@@ -6,19 +6,25 @@ title: Que On Rails Without structure.sql
 
 # Resume
 
-`Que` (\*not confuse with `solid-queue`) have some specific way to implement it to rails due of `PostgreSQL` specific structures (especially functions). Que forces to switch `schema.rb` to `structure.sql` . At this article i'll describe how to implement Que and stay with `schema.rb` . Also, at this article i will describe my pain and save your time to solve this interesting task.
+`Que` (не путать с `solid-queue`) имеет ограниченную поддержу rails. Для установки Que на Rails c ActiveRecord необходимо сменить `schema.rb` на `structure.sql`. В этом посте я расскажу как добавить Que и остаться со `schema.rb`. Я сохраню ваше время, чтобы вы не пытались различными костылями заставить Que работать и приведу различные решения этой задачи.
 
-## Problem?
+## Почему Que не работает?
 
-Que has only condition supports. It forces to switch `schema.rb` to `structure.sql`
+Que имеет частичную поддержку, в README.md прямо говорится что
+
+```
+If you're using ActiveRecord to dump your database's schema, please set your schema_format to :sql so that Que's table structure is managed correctly.
+```
+
+То есть от нас требуют чтобы мы поменяли формат схемы и полностью всё отформатировали в `structure.sql`:
 
 ```ruby
 config.active_record.schema_format :sql
 ```
 
-Why is `schema.rb` isn't compatible with `Que`???
+## Почему ActiveRecord и `schema.rb` не поддерживаемы с `Que`
 
-`Rails::Migration` and especially `schema.rb` doesn't supports database specific structures, like views, triggers and functions. `Que` using functions and use it at table constraints:
+Модуль `Rails::Migration` и `schema.rb` поддерживают базовые и часто используемые структуры. Этим самым у нас обделяются такие структуры как view, trigger и functions. Que активно использует эти структуры у себя и по этому у нас появился один конфликт, который находится в схеме в таблице `que_jobs` используется constraint который обращается к функцие:
 
 ```ruby
 create_table "que_jobs", comment: "7", force: :cascade do |t|
@@ -28,9 +34,7 @@ create_table "que_jobs", comment: "7", force: :cascade do |t|
 end
 ```
 
-`que_validate_tags` is a function which defines at one of `Que's` migrations. They are places at [4th que migration](https://github.com/que-rb/que/blob/master/lib/que/migrations/4/up.sql#L34):
-
-but why we just cant create this function inside on migration?
+`que_validate_tags` является функцией которая создается в одной из миграций в que. Нужная "проблемная" миграция расположена на [четвёртой que миграции](https://github.com/que-rb/que/blob/master/lib/que/migrations/4/up.sql#L34):
 
 ```ruby
 class CreateQueSchemaV4 < ActiveRecord::Migration[7.1]
@@ -54,53 +58,55 @@ class CreateQueSchemaV4 < ActiveRecord::Migration[7.1]
 end
 ```
 
-## Why its doesnt solved my problem?
+## Но почему у нас появляется проблема когда мы производим все миграции от que?
 
-When Rails checks the schema (db:schema:dump), it does so in a new transaction. Functions are missing and we [got that problem](https://github.com/que-rb/que/issues/397).
+Rails постоянно проверяет схема на валидность (c помощью rails db:schema:dump), во время этой проверки создаётся транзакция в которой теряются все непонятные для фреймворка структуры. В данном случае теряется та самая проблемная функция и мы [получаем невозможность полноценно работать с приложением](https://github.com/que-rb/que/issues/397).
 
-`schema.rb` is a structure which created only for Rails DSL. Rails migrations have a lot of transactions/processes which can forgot your function from database at any process.
+`schema.rb` это структура которая исключительно работает с DSL от Rails. Миграция как процесс не такой простой как кажется на первый взгляд. Идёт речь про кучу процессов и транзакций в которых rails игнорирует неизвестные ему структуры.
 
-So, for that creators of `Que` asking for switching `schema.rb -> structure.sql`. It's using `pg_dump` instead of `rails db:schema:dump` and includes all objects.
+Именно по этому создатели `Que` просят делать перенос `schema.rb -> structure.sql`. Суть в том, что в structure.sql загружаются все структуры, используя внутренние инструменты СУБД (в нашем случае это `pg_dump`) заместо db:schema:dump.
 
-## structure.sql is a endless headache.
+## Почему стоит избегать structure.sql
 
-While `structure.sql` works, it comes with drawbacks:
+Работающий `structure.sql` имеет свои недостатки:
 
-- Harder to review in version control
-- More prone to merge conflicts
-- Loses Rails' abstraction over database specifics
+- Тяжело проверять целостность
+- Тяжело решать конфликты
+- Мы всё дальше отходим от экосистемы rails
 
 ## arfi
 
-I found a solution - [arfi](https://github.com/unurgunite/arfi)
+Но всё же есть возможность сохранить schema.rb и заставить Que работать.
+
+[arfi](https://github.com/unurgunite/arfi)
 
 ```
-The ARFI gem provides the ability to create and maintain custom
-SQL functions for ActiveRecord models without switching to structure.sql (an SQL-based schema).
-You can use your own SQL functions in any part of the project,
-from migrations and models to everything else.
+ARFI gem предоставляет возможность создавать и поддерживать пользовательские
+функции SQL для моделей ActiveRecord без переключения на structure.sql (схему на основе SQL).
+Вы можете использовать собственные функции SQL в любой части проекта,
+от миграций и моделей до всего остального.
 ```
 
-This is what we need! But how it works?
-That gem loads functions therefore and guarantee will be before of any migrations and schema validations.
+Это ведь то что нам нужно! Как же оно работает?
+Гем предзагружает функции перед каждым процессом, связанный с миграциями и делает так, чтобы rails видел и понимал что такое функция.
 
-## Installing Que without switching to structure.sql
+## Устанавливаем Que без переноса на structure.sql с использованием arfi
 
-1. Add 'que' gem
+1. Добавляем 'que' гем
 
 ```
 bundle add que
 ```
 
-2. Add 'arfi' gem
+2. Добавляем 'arfi' гем
 
 ```
 bundle add arfi
 ```
 
-3. [Configure arfi](https://github.com/unurgunite/arfi?tab=readme-ov-file#usage) and create functions from [que's migrations](https://github.com/que-rb/que/tree/master/lib/que/migrations). Instead of `CREATE FUNCTION` better use `CREATE OR REPLACE FUNCTION`
+3. [Настраиваем arfi](https://github.com/unurgunite/arfi?tab=readme-ov-file#usage) и создаем проблемную функцию из [que's миграции](https://github.com/que-rb/que/tree/master/lib/que/migrations). В функциях заместо `CREATE FUNCTION` используется `CREATE OR REPLACE FUNCTION`
 
-4. Create list of que's migrations [que's migrations](https://github.com/que-rb/que/tree/master/lib/que/migrations)
+4. Создаем все миграции от que без упоминания функций [que's миграции](https://github.com/que-rb/que/tree/master/lib/que/migrations)
 
 ```
 db/migrate/
@@ -113,7 +119,7 @@ db/migrate/
   20250605112412_create_que_schema_v7.rb
 ```
 
-Copy sql code and put it similar to:
+Ваши миграции будут похожи на:
 
 ```
 class CreateQueSchemaV1 < ActiveRecord::Migration[7.1]
@@ -140,6 +146,6 @@ class CreateQueSchemaV1 < ActiveRecord::Migration[7.1]
 end
 ```
 
-p.s.: don't forget to remove functions
+5 Производим `rails db:migrate`
 
-Execute migrations. Voila! Que is works! And you avoid switching to bulky `structure.sql`
+Вуаля! Que работает и вы увернулись от перехода на структурую
